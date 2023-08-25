@@ -55,6 +55,11 @@ const Layout = styled.div`
   .handle_col1:after {
     background-color: #0F08;
   }
+  
+  .current-column {
+    fill: #8008;
+    z-index: 1;
+  }
 `
 
 const size = 32
@@ -106,35 +111,42 @@ export const App = hot(()=> {
   )
 
   const addColumn = ()=>{
-    setColumns([...columns,{path:'M4 28C13 16 2 7 11 3', num:6}])
-    console.log('addColumn',addColumn) // todo: remove log
+    const r = ()=>Math.random()*32<<0
+    const newColumns = [...columns,{path:`M${r()} ${r()}C${r()} ${r()} ${r()} ${r()} ${r()} ${r()}`, num:6}]
+    setColumns(newColumns)
+    setCurrentColumn(newColumns[newColumns.length-1])
   }
 
   const [currentColumn, setCurrentColumn] = useState<IColumn>(columns[0])
   const currentIndex = useMemo(()=>columns.indexOf(currentColumn), [columns, currentColumn])
   const currentPathPoints = useMemo(()=>splitPath(currentColumn.path), [currentColumn])
-  console.log('currentPathPoints',currentPathPoints) // todo: remove log
 
-
-  const setNum = useCallback((number:number)=>{
-    columns[currentIndex].num = number
-    setColumns(columns)
+  const setNum = useCallback((num:number)=>{
+    const newColums = [...columns]
+    const newColum = {...newColums[currentIndex], num}
+    newColums[currentIndex] = newColum
+    setColumns(newColums)
+    setCurrentColumn(newColum)
   }, [columns, currentIndex])
 
   return <Layout>
     <button onClick={()=>addColumn()}>add column</button>
-
-    hello {columns.length}
 
     <Select
         options={columns.map((c,i)=>({text:c.path,value:i}))}
         onChange={(e)=>setCurrentColumn(columns[e.target.value])}
         value={currentIndex}
     />
-
-    <div>index: {currentIndex}</div>
+    <div>selected column {currentIndex+1} of {columns.length}</div>
     <div>path: {currentColumn?.path}</div>
-    <label>num: <input type="number" defaultValue={currentColumn?.num} onChange={(e)=>setNum(e.target.valueAsNumber)} /></label>
+    <label>num: <input
+        type="number"
+        min="1"
+        max="22"
+        step="1"
+        defaultValue={currentColumn.num}
+        onChange={(e)=>setNum(e.target.valueAsNumber)}
+    /></label>
 
     <div className="wrap">
 
@@ -143,7 +155,7 @@ export const App = hot(()=> {
           const {path, num} = column
           return Array(num).fill(1).map((o,j)=>{
             const begin = -duration + (duration/num*j) + 'ms'
-            return <circle key={i*1E9+j}>
+            return <circle key={'circle'+i+'-'+j+'-'+num} className={column===currentColumn?'current-column':''}>
               <animateMotion {...{...animateMotionAttrs,begin,path}} />
               <animate {...{...animateAttrs,begin}} />
             </circle>
