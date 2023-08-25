@@ -1,7 +1,8 @@
 import {hot} from 'react-hot-loader/root'
-import React, {useCallback, useMemo, useState} from 'react'
+import React, {useCallback, useEffect, useMemo, useState} from 'react'
 import styled from 'styled-components'
 import {Select} from './Select'
+import {Handle} from './Handle'
 // import * as path from 'path'
 // import {Switch, BrowserRouter as Router} from 'react-router-dom'
 // import {Providers} from './context'
@@ -26,9 +27,6 @@ const Layout = styled.div`
     padding: 2rem 0 1rem;
   }
   >header, >footer { flex: 0 0 auto; }
-  svg {
-    
-  }
   
   .wrap {
     position: relative;
@@ -38,22 +36,8 @@ const Layout = styled.div`
     box-shadow: 0 0 0 1px red;
   }
 
-  .handle {
-    position: absolute;
-  }
+  svg {
 
-  .handle:after {
-    content: '';
-    display: block;
-    transform: translate(-50%, -50%);
-    width: 2rem;
-    height: 2rem;
-    border-radius: 50%;
-    background-color: #F008;
-  }
-
-  .handle_col1:after {
-    background-color: #0F08;
   }
   
   .current-column {
@@ -121,6 +105,10 @@ export const App = hot(()=> {
   const currentIndex = useMemo(()=>columns.indexOf(currentColumn), [columns, currentColumn])
   const currentPathPoints = useMemo(()=>splitPath(currentColumn.path), [currentColumn])
 
+  useEffect(()=>{
+    console.log('currentColumn.path',currentColumn.path) // todo: remove log
+  }, [currentColumn])
+
   const setNum = useCallback((num:number)=>{
     const newColums = [...columns]
     const newColum = {...newColums[currentIndex], num}
@@ -128,6 +116,27 @@ export const App = hot(()=> {
     setColumns(newColums)
     setCurrentColumn(newColum)
   }, [columns, currentIndex])
+
+  ////////////////
+  const onHandleDrag = useCallback((index,x,y)=>{
+
+    const newPathPoints = [...currentPathPoints]
+    newPathPoints[index] = [x,y].map(n=>Math.round(n/scale))
+    const [[x1,y1],[x1s,y1s],[x2s,y2s],[x2,y2]] = newPathPoints
+    const path = `M${x1} ${y1}C${x1s} ${y1s} ${x2s} ${y2s} ${x2} ${y2}`
+
+    const newColums = [...columns]
+    const newColum = {...newColums[currentIndex], path}
+    newColums[currentIndex] = newColum
+    setColumns(newColums)
+    setCurrentColumn(newColum)
+
+  }, [columns, currentColumn, currentIndex, currentPathPoints])
+
+  useEffect(()=>{
+    console.log('onHandleDrag updated') // todo: remove log
+  }, [onHandleDrag])
+  ////////////////
 
   return <Layout>
     <button onClick={()=>addColumn()}>add column</button>
@@ -164,11 +173,11 @@ export const App = hot(()=> {
       </svg>
 
       {currentPathPoints.map(([x,y],i)=>{
-        return <div
-            key={'handle'+i}
-            className="handle"
-            data-index={i}
-            style={{left: x*scale+'px', top: y*scale+'px'}}
+        return <Handle
+            key={'handle'+currentIndex+'_'+i}
+            x={x*scale}
+            y={y*scale}
+            onDrag={(x,y)=>onHandleDrag(i,x,y)}
         />
       })}
 
